@@ -1,0 +1,126 @@
+import os, shutil
+folders = os.listdir(r"C:\Users\91914\Downloads\machine-learning-online-2018-master\machine-learning-online-2018-master\Datasets\Images\images")
+print(folders)
+if not os.path.isdir("val_images"):
+    os.mkdir("val_images")
+classes = ["dogs","cats","horses","humans"]
+for c in classes:
+    p = os.path.join("val_images",c) #val_images/cats
+    if not os.path.isdir(p):
+        os.mkdir(p)
+      
+SPLIT = 0.9
+for f in os.listdir(r"C:\Users\91914\Downloads\machine-learning-online-2018-master\machine-learning-online-2018-master\Datasets\Images\images"):
+    path = r"C:\\Users\\91914\\Downloads\\machine-learning-online-2018-master\\machine-learning-online-2018-master\\Datasets\\Images\\images\\"+f
+    imgs = os.listdir(path)
+    
+    split_size = int(SPLIT*len(imgs))
+    files_to_move = imgs[split_size:]
+    #print(len(files_to_move))
+    #print(files_to_move)
+    for img_f in files_to_move:
+        src = os.path.join(path,img_f)
+        dest = os.path.join("val_images/"+f,img_f)
+        shutil.move(src,dest)
+print("Training Data")
+for f in folders:
+    path = r"C:\\Users\\91914\\Downloads\\machine-learning-online-2018-master\\machine-learning-online-2018-master\\Datasets\\Images\\images\\"+f
+    print(f+ " "+str(len(os.listdir(path))))
+   
+
+print("\n Validation Data") 
+for f in folders:
+    path = "val_images/"+f
+    print(f+ " "+str(len(os.listdir(path))))
+from keras.preprocessing import image
+from matplotlib import pyplot as plt
+
+sample_path = r"C:\Users\91914\Downloads\machine-learning-online-2018-master\machine-learning-online-2018-master\Datasets\Images\images\cats\cat.1.jpg"
+img = image.load_img(sample_path)
+x = image.img_to_array(img)/255.0
+plt.imshow(img)
+plt.axis("off")
+plt.show()
+sample_path = r"C:\Users\91914\Downloads\machine-learning-online-2018-master\machine-learning-online-2018-master\Datasets\Images\images\humans\rider-10.jpg"
+img = image.load_img(sample_path)
+x = image.img_to_array(img)/255.0
+plt.imshow(img)
+plt.axis("off")
+plt.show()
+from keras.preprocessing.image import ImageDataGenerator
+
+train_gen = ImageDataGenerator(rescale=1.0/255,
+    rotation_range = 40,
+    width_shift_range = 0.2,
+    height_shift_range = 0.2,
+    shear_range = 0.2,
+    zoom_range = 0.3,
+    horizontal_flip = True
+    )
+
+
+val_gen = ImageDataGenerator(rescale=1.0/255)
+
+train_generator = train_gen.flow_from_directory(
+    r"C:\\Users\\91914\\Downloads\\machine-learning-online-2018-master\\machine-learning-online-2018-master\\Datasets\\Images\\images\\",
+    target_size = (224,224),
+    batch_size = 32,
+    class_mode = 'categorical'
+)
+
+val_generator = val_gen.flow_from_directory(
+    "val_images\\",
+    target_size = (224,224),
+    batch_size = 32,
+    class_mode = 'categorical'
+)
+for x,y in train_generator:
+    print(x.shape)
+    print(y.shape)
+    break
+from keras.applications.resnet50 import ResNet50
+from keras.preprocessing import image
+from keras.applications.resnet50 import preprocess_input, decode_predictions
+import numpy as np
+
+model = ResNet50(include_top=False,weights='imagenet',input_shape=(224,224,3))
+model.summary()
+
+from keras.layers import * 
+from keras.models import Model
+av1 = GlobalAveragePooling2D()(model.output)
+fc1 = Dense(256,activation='relu')(av1)
+d1 = Dropout(0.5)(fc1)
+fc2 = Dense(4,activation='softmax')(d1)
+
+model_new = Model(inputs=model.input,output=fc2)
+
+model_new.summary()
+for ix in range(len(model_new.layers)):
+    pass
+    #print(ix,model_new.layers[ix])
+
+for ix in range(169):
+    model_new.layers[ix].trainable = False
+    
+model_new.summary()
+from keras.optimizers import Adam
+adam = Adam(lr=0.00003)
+model_new.compile(optimizer='adam',metrics=['accuracy'],loss='categorical_crossentropy')
+history = model_new.fit_generator(
+    train_generator,
+    epochs = 50,
+    steps_per_epoch = 5,
+    validation_data = val_generator,
+    validation_steps = 5   
+)
+accuracy = history.history['accuracy']
+val_accuracy = history.history['val_accuracy']
+loss = history.history['loss']
+val_loss= history.history['val_loss']
+plt.plot(accuracy,label="accuracy")
+plt.plot(val_accuracy,label="val accuracy")
+plt.plot(loss,label='loss')
+plt.plot(val_loss,label='val loss')
+plt.legend()
+plt.show()
