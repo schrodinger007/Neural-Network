@@ -1,0 +1,54 @@
+import numpy as np
+import keras
+import matplotlib.pyplot as plt
+from keras.preprocessing import image
+from keras.preprocessing.image import ImageDataGenerator
+!pip install keras --user
+image_gen=ImageDataGenerator(
+rescale=1/255.0,
+rotation_range=40,
+width_shift_range=0.2,
+height_shift_range=0.2,
+shear_range=0.2,
+zoom_range=0.3,
+horizontal_flip=True,
+)
+test_gen=ImageDataGenerator(rescale=1/255.0)
+train_gen=test_gen.flow_from_directory(r"C:\Users\91914\Downloads\tiny-imagenet-200\tiny-imagenet-200\train",
+                                             target_size=((224,224)),
+                                             batch_size=128,
+                                             class_mode='categorical')
+
+
+train_gen.class_indices
+import matplotlib.pyplot as plt
+for(x,y)in train_gen:
+    print(x.shape,y.shape)
+    for i in range(10):
+        plt.imshow(x[i])
+        plt.show()
+    break
+class_ids=train_gen.class_indices
+print(class_ids)
+import os
+def load_validation_data(target_size,no_of_classes):
+    with open(r"C:\Users\91914\Downloads\tiny-imagenet-200\tiny-imagenet-200\val\val_annotations.txt") as f:
+        lines=f.readlines()
+        m=len(lines)
+        print(m)
+        X=np.empty((m,*target_size,3))
+        Y=np.empty(m,dtype=int)
+        for i,line in enumerate(lines):
+            tokens=line.split()
+            img_name=tokens[0]
+            img_label=tokens[1]
+            img_url=os.path.join(r"C:\Users\91914\Downloads\tiny-imagenet-200\tiny-imagenet-200\val\images",img_name)
+            img=image.load_img(img_url)
+            img=img.resize(target_size)
+            X[i,]=np.array(img,dtype=np.float32)/255.0
+            img.close()
+            Y[i]=class_ids[img_label]
+        return X,keras.utils.to_categorical(Y,no_of_classes)
+X_val,Y_val=load_validation_data((120,120),200)
+print(X_val.shape)
+print(Y_val.shape)
